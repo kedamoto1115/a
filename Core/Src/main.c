@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-
+#include <stdarg.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,6 +59,21 @@ void StartTask1(void const * argument);
 void StartTask02(void const * argument);
 
 /* USER CODE BEGIN PFP */
+int uart_printf(const char* format, ...)
+{
+  char buffer[96];
+  va_list args;
+  va_start(args, format);
+  int len = vsnprintf(buffer, sizeof(buffer), format, args);
+  va_end(args);
+
+  if(len > 0)
+  {
+    HAL_UART_Transmit(&huart2, (uint8_t*)buffer, len, HAL_MAX_DELAY);
+  }
+
+  return len;
+}
 
 /* USER CODE END PFP */
 
@@ -347,7 +362,7 @@ void StartTask02(void const * argument)
       osMutexRelease(kadai1Handle);
     }
     if(task1_ready == 1 && task2_ready == 1) {
-      printf("Total Sum: %d\r\n", total_sum);
+      uart_printf("Total Sum: %lu\r\n", total_sum);
       
       HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 
