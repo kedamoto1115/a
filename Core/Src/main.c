@@ -46,6 +46,7 @@ UART_HandleTypeDef huart2;
 
 osThreadId myTask1Handle;
 osThreadId myTask02Handle;
+osThreadId myTask03Handle;
 osMutexId kadai1Handle;
 /* USER CODE BEGIN PV */
 
@@ -57,6 +58,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartTask1(void const * argument);
 void StartTask02(void const * argument);
+void StartTask03(void const * argument);
 
 /* USER CODE BEGIN PFP */
 int uart_printf(const char* format, ...)
@@ -84,6 +86,7 @@ uint32_t data_array[ARRAY_SIZE];
 int task1_ready = 0;
 int task2_ready = 0;
 int total_sum = 0;
+
 
 /* USER CODE END 0 */
 
@@ -122,6 +125,11 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* グローバル変数data_arrayの初期化 */
+  for(int i = 0; i < ARRAY_SIZE; i++) {
+    data_array[i] = i + 1;
+  }
+
   /* Create the mutex(es) */
   /* definition and creation of kadai1 */
   osMutexDef(kadai1);
@@ -151,6 +159,10 @@ int main(void)
   /* definition and creation of myTask02 */
   osThreadDef(myTask02, StartTask02, osPriorityNormal, 0, 128);
   myTask02Handle = osThreadCreate(osThread(myTask02), NULL);
+
+  /* definition and creation of myTask03 */
+  osThreadDef(myTask03, StartTask03, osPriorityNormal, 0, 128);
+  myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -308,24 +320,21 @@ void StartTask1(void const * argument)
   /* USER CODE BEGIN 5 */
   int count = 0;
   int sum1 = 0;
-  for(int i = 0; i < ARRAY_SIZE/2; i++) {
-    data_array[i] = i + 1;
-  }
-
   /* Infinite loop */
   for(;;)
   {
-    if(task1_ready == 0) {
-      sum1 += data_array[count];
-      count++;
+    sum1 += data_array[count];
+    count++;
+    if(count == ARRAY_SIZE/2)
+    { 
+      if(osMutexWait(kadai1Handle, osWaitForever) == osOK)
+      {
+        total_sum += sum1;
+        task1_ready = 1;
+        osMutexRelease(kadai1Handle);
+    
+      }
     }
-    if(count >= (ARRAY_SIZE/2)) {
-      osMutexWait(kadai1Handle, osWaitForever);
-      total_sum = sum1;
-      task1_ready = 1;
-      osMutexRelease(kadai1Handle);
-    }
-
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -342,35 +351,54 @@ void StartTask02(void const * argument)
 {
   /* USER CODE BEGIN StartTask02 */
   int sum2 = 0;
-  int count = 0;
-  for(int i = ARRAY_SIZE/2; i < ARRAY_SIZE; i++) {
-    data_array[i] = i + 1;
-  }
+  int count = ARRAY_SIZE/2;
+
+  
   /* Infinite loop */
   for(;;)
   {
-    if(task2_ready == 0) {
-      sum2 += data_array[count + (ARRAY_SIZE/2)];
-      count++;
-    }
-    if(count >= ARRAY_SIZE) {
-      osMutexWait(kadai1Handle, osWaitForever);
-      if(task1_ready==1){
-        total_sum += sum2;
+    sum2 += data_array[count];
+    count++;
+    if(count == ARRAY_SIZE && task1_ready == 1)
+    {
+      if(osMutexWait(kadai1Handle, osWaitForever) == osOK)
+      {
+        total_sum += sum2;    
         task2_ready = 1;
+        osMutexRelease(kadai1Handle);
       }
-      osMutexRelease(kadai1Handle);
-    }
-    if(task1_ready == 1 && task2_ready == 1) {
-      uart_printf("Total Sum: %lu\r\n", total_sum);
-      
-      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-
+    
     }
     osDelay(1);
   }
 
   /* USER CODE END StartTask02 */
+}
+
+/* USER CODE BEGIN Header_StartTask03 */
+/**
+* @brief Function implementing the myTask03 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask03 */
+void StartTask03(void const * argument)
+{
+  /* USER CODE BEGIN StartTask03 */
+      
+  /* Infinite loop */
+  for(;;){
+    if(task1_ready == 1 && task2_ready == 1) 
+    {
+      if(osMutexWait(kadai1Handle, osWaitForever) ==osOK)
+      {
+        uart_printf("Total Sum: %lu\r\n", total_sum);
+      osMutexRelease(kadai1Handle);
+      }
+      osDelay(1);
+    }
+  }
+  /* USER CODE END StartTask03 */
 }
 
 /**
