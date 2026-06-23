@@ -359,13 +359,19 @@ void StartTask02(void const * argument)
   {
     sum2 += data_array[count];
     count++;
-    if(count == ARRAY_SIZE && task1_ready == 1)
+    if(count == ARRAY_SIZE)
     {
       if(osMutexWait(kadai1Handle, osWaitForever) == osOK)
       {
-        total_sum += sum2;    
-        task2_ready = 1;
-        osMutexRelease(kadai1Handle);
+        if(task1_ready == 1)
+        {
+        
+          total_sum += sum2;    
+        
+          task2_ready = 1;
+        
+          osMutexRelease(kadai1Handle);
+        }
       }
     
     }
@@ -388,15 +394,15 @@ void StartTask03(void const * argument)
       
   /* Infinite loop */
   for(;;){
-    if(task1_ready == 1 && task2_ready == 1) 
+    if(osMutexWait(kadai1Handle, osWaitForever) ==osOK) 
     {
-      if(osMutexWait(kadai1Handle, osWaitForever) ==osOK)
+      if(task1_ready == 1 && task2_ready == 1)
       {
         uart_printf("Total Sum: %lu\r\n", total_sum);
-      osMutexRelease(kadai1Handle);
       }
-      osDelay(1);
+      osMutexRelease(kadai1Handle);
     }
+    osDelay(1);
   }
   /* USER CODE END StartTask03 */
 }
