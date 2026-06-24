@@ -323,8 +323,13 @@ void StartTask1(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+    
     sum1 += data_array[count];
-    count++;
+    if(count <= ARRAY_SIZE/2)
+    {
+      count++;
+    }
+
     if(count == ARRAY_SIZE/2)
     { 
       if(osMutexWait(kadai1Handle, osWaitForever) == osOK)
@@ -357,8 +362,14 @@ void StartTask02(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+  
     sum2 += data_array[count];
-    count++;
+    if(count <= ARRAY_SIZE)
+    {
+      count++;
+    }
+    
+
     if(count == ARRAY_SIZE)
     {
       if(osMutexWait(kadai1Handle, osWaitForever) == osOK)
